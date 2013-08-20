@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -67,7 +67,9 @@ namespace LaunchPad
         case Keys.R:
           tileApps.Clear();
           LoadTiles();
+          Hide();
           SetBackground();
+          Show();
           break;
       }
     }
@@ -76,11 +78,10 @@ namespace LaunchPad
     {
       Hide();
 
-      //blank areas
-      if(e.X < offsetX) return; if(e.X > (Width  - offsetX)) return;
-      if(e.Y < offsetY) return; if(e.Y > (Height - offsetY)) return;
-      int tileXOff = (e.X - offsetX) % tilePadSize; if(tileXOff > tileSize     ) return;
-      int tileYOff = (e.Y - offsetY) % tilePadSize; if(tileYOff > (tileSize+16)) return;
+      int tileXOff = (e.X - offsetX) % tilePadSize; if(tileXOff > tileSize     ) return; //in a blank area
+      int tileYOff = (e.Y - offsetY) % tilePadSize; if(tileYOff > (tileSize+16)) return; //in a blank area
+      if((e.X < offsetX) || (e.X > (Width  - offsetX))) return;
+      if((e.Y < offsetY) || (e.Y > (Height - offsetY))) return;
       
       int tileX = ((e.X - offsetX) - tileXOff) / tilePadSize;
       int tileY = ((e.Y - offsetY) - tileYOff) / tilePadSize;
@@ -113,6 +114,9 @@ namespace LaunchPad
       offsetX = (Width + tileSpacing - (nTilesX * tilePadSize)) >> 1;
       offsetY = (Height + tileSpacing - (nTilesY * tilePadSize)) >> 1;
 
+      StringFormat tileFmt  = new StringFormat();
+      tileFmt.LineAlignment = StringAlignment.Center;
+      tileFmt.Alignment     = StringAlignment.Center;
       int tileCount = tileApps.Count;
       Font tileFont = new Font("Helvetica", 9.0f, FontStyle.Bold);
       Brush tileBrush = new SolidBrush(Color.White);
@@ -123,10 +127,17 @@ namespace LaunchPad
         int drawLeft = offsetX + (x * tilePadSize);
         int drawTop  = offsetY + (y * tilePadSize);
         gfx.DrawImage(tileApps[index].Icon, drawLeft,drawTop, tileSize,tileSize);
-        gfx.DrawString(tileApps[index].Title, tileFont, tileBrush, (float)drawLeft, (float)(drawTop + tileSize + 4));
+        Rectangle rc = new Rectangle(drawLeft, drawTop + tileSize + 4, tileSize, tileFont.Height);
+        gfx.DrawString(tileApps[index].Title, tileFont, tileBrush, rc, tileFmt);
       }
 
       BackgroundImage = scrnB;
+
+      gfx.Dispose();
+      scrnF.Dispose();
+      tileFont.Dispose();
+      tileBrush.Dispose();
+      GC.Collect(); //prevent insane memory usage here...
     }
 
     private void LoadTiles()
@@ -155,6 +166,7 @@ namespace LaunchPad
 
     private void Display()
     {
+      if(Visible) { Hide(); return; }
       SetBackground();
       Show();
     }
