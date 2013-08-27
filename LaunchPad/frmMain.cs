@@ -29,8 +29,8 @@ namespace LaunchPad
 
     private int HotkeyID;
     private List<TileApp> tileApps = new List<TileApp>();
-    private int tileSize    = 96;
-    private int tileSpacing = 96;
+    private int tileSize    = 96; // <-- Application Icon Size
+    private int tileSpacing = 96; // <-- Icon Spacing
     private int tilePadSize, nTilesX, nTilesY, offsetX, offsetY;
 
     public frmMain()
@@ -61,6 +61,8 @@ namespace LaunchPad
 
     private void frmMain_KeyDown(object sender, KeyEventArgs e)
     {
+      //Escape -> hide LaunchPad
+      //R      -> reload configuration
       switch (e.KeyCode)
       {
         case Keys.Escape: frmMain_Deactivate(sender, e); break;
@@ -78,16 +80,18 @@ namespace LaunchPad
     {
       Hide();
 
-      int tileXOff = (e.X - offsetX) % tilePadSize; if(tileXOff > tileSize     ) return; //in a blank area
-      int tileYOff = (e.Y - offsetY) % tilePadSize; if(tileYOff > (tileSize+16)) return; //in a blank area
+      //blank areas...
+      int tileXOff = (e.X - offsetX) % tilePadSize; if(tileXOff > tileSize     ) return;
+      int tileYOff = (e.Y - offsetY) % tilePadSize; if(tileYOff > (tileSize+16)) return;
       if((e.X < offsetX) || (e.X > (Width  - offsetX))) return;
       if((e.Y < offsetY) || (e.Y > (Height - offsetY))) return;
       
       int tileX = ((e.X - offsetX) - tileXOff) / tilePadSize;
       int tileY = ((e.Y - offsetY) - tileYOff) / tilePadSize;
       int index = (tileY * nTilesX) + tileX;
-      if((index < 0) || (index >= tileApps.Count)) return; //who knows...
+      if((index < 0) || (index >= tileApps.Count)) return; //who knows how this would happen...
 
+      //launch selected tile
       TileApp ta = tileApps[index];
       System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo();
       psi.FileName         = ta.Executable;
@@ -102,7 +106,7 @@ namespace LaunchPad
       Bitmap scrnB = new Bitmap(scrnW, scrnH);
       Graphics gfx = Graphics.FromImage(scrnB);
       gfx.CopyFromScreen(Screen.PrimaryScreen.Bounds.X, Screen.PrimaryScreen.Bounds.Y, 0, 0, scrnB.Size, CopyPixelOperation.SourceCopy);
-      Brush scrnF = new SolidBrush(Color.FromArgb(0xBB, 0x10, 0x10, 0x10));
+      Brush scrnF = new SolidBrush(Color.FromArgb(0xBB, 0x10, 0x10, 0x10)); // <-- Background Darkness
       gfx.FillRectangle(scrnF, 0, 0, scrnW, scrnH);
 
       Top = Left = 0;
@@ -137,11 +141,16 @@ namespace LaunchPad
       scrnF.Dispose();
       tileFont.Dispose();
       tileBrush.Dispose();
-      GC.Collect(); //prevent insane memory usage here...
+      GC.Collect(); // <-- prevent insane memory growth...
     }
 
     private void LoadTiles()
     {
+      //load text file from "\Users\{username}\LaunchPad\Apps.text"
+      //i also place LaunchPad.exe, and its icons, in \Users\{username}\LaunchPad (not required though)
+      //Apps.text is a single-text-line-per-entry, pipe-separated file, of the format:
+      //  Title|IconPath|ExecutablePath|ExecutableArguments|WorkingDirectory
+      //Arguments and WorkingDir are optional, other values are required.
       string launchPadDir = Environment.GetEnvironmentVariable("USERPROFILE") + "\\LaunchPad\\";
       string[] tileData = File.ReadAllLines(launchPadDir + "Apps.text");
       for(var i = 0; i < tileData.Length; i++)
